@@ -84,6 +84,15 @@ class MatrixFederationAgentTests(unittest.TestCase):
 
         self.tls_factory = FederationPolicyForHTTPS(config)
 
+        # ensure any proxy settings from the environment do not interfere with
+        # the tests. In some execution environments (like CI or the test
+        # runner's container) `https_proxy` or `http_proxy` may be preset which
+        # would cause the agent to attempt to proxy outbound connections.
+        for var in ("http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY"):
+            if var in os.environ:
+                old = os.environ.pop(var)
+                self.addCleanup(os.environ.__setitem__, var, old)
+
         self.well_known_cache: TTLCache[bytes, Optional[bytes]] = TTLCache(
             "test_cache", timer=self.reactor.seconds
         )
