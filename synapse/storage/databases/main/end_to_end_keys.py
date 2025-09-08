@@ -354,10 +354,8 @@ class EndToEndKeyWorkerStore(EndToEndKeyBackgroundStore, CacheInvalidationWorker
         )
 
         for batch in batch_iter(signature_query, 50):
-            cross_sigs_result = await self.db_pool.runInteraction(
-                "get_e2e_cross_signing_signatures_for_devices",
-                self._get_e2e_cross_signing_signatures_for_devices_txn,
-                batch,
+            cross_sigs_result = (
+                await self._get_e2e_cross_signing_signatures_for_devices(batch)
             )
 
             # add each cross-signing signature to the correct device in the result dict.
@@ -479,41 +477,70 @@ class EndToEndKeyWorkerStore(EndToEndKeyBackgroundStore, CacheInvalidationWorker
 
         return result
 
-    def _get_e2e_cross_signing_signatures_for_devices_txn(
-        self, txn: LoggingTransaction, device_query: Iterable[Tuple[str, str]]
-    ) -> List[Tuple[str, str, str, str]]:
+    @cached()
+    def _get_e2e_cross_signing_signatures_for_device(
+        self,
+        user_id_and_device_id: Tuple[str, str],
+    ) -> Tuple[str, str, str, str]:
+        """
+        The single-item version of `_get_e2e_cross_signing_signatures_for_devices`.
+
+        See @cachedList for why a separate method is needed.
+        """
+        raise NotImplementedError()
+
+    @cachedList(
+        cached_method_name="_get_e2e_cross_signing_signatures_for_device",
+        list_name="device_query",
+    )
+    async def _get_e2e_cross_signing_signatures_for_devices(
+        self, device_query: Iterable[Tuple[str, str]]
+    ) -> Sequence[Tuple[str, str, str, str]]:
         """Get cross-signing signatures for a given list of devices
 
         Returns signatures made by the owners of the devices.
 
-        Returns: a list of results; each entry in the list is a tuple of
+        Returns:
+            A list of results; each entry in the list is a tuple of
             (user_id, key_id, target_device_id, signature).
+
+            As results are cached, the return type is an immutable `Sequence`.
         """
-        signature_query_clauses = []
-        signature_query_params = []
 
-        for user_id, device_id in device_query:
-            signature_query_clauses.append(
-                "target_user_id = ? AND target_device_id = ? AND user_id = ?"
+        def _get_e2e_cross_signing_signatures_for_devices_txn(
+            txn: LoggingTransaction, device_query: Iterable[Tuple[str, str]]
+        ) -> Sequence[Tuple[str, str, str, str]]:
+            signature_query_clauses = []
+            signature_query_params = []
+
+            for user_id, device_id in device_query:
+                signature_query_clauses.append(
+                    "target_user_id = ? AND target_device_id = ? AND user_id = ?"
+                )
+                signature_query_params.extend([user_id, device_id, user_id])
+
+            signature_sql = """
+                SELECT user_id, key_id, target_device_id, signature
+                FROM e2e_cross_signing_signatures WHERE %s
+                """ % (" OR ".join("(" + q + ")" for q in signature_query_clauses))
+
+            txn.execute(signature_sql, signature_query_params)
+            return cast(
+                List[
+                    Tuple[
+                        str,
+                        str,
+                        str,
+                        str,
+                    ]
+                ],
+                txn.fetchall(),
             )
-            signature_query_params.extend([user_id, device_id, user_id])
 
-        signature_sql = """
-            SELECT user_id, key_id, target_device_id, signature
-            FROM e2e_cross_signing_signatures WHERE %s
-            """ % (" OR ".join("(" + q + ")" for q in signature_query_clauses))
-
-        txn.execute(signature_sql, signature_query_params)
-        return cast(
-            List[
-                Tuple[
-                    str,
-                    str,
-                    str,
-                    str,
-                ]
-            ],
-            txn.fetchall(),
+        return await self.db_pool.runInteraction(
+            "_get_e2e_cross_signing_signatures_for_devices_txn",
+            _get_e2e_cross_signing_signatures_for_devices_txn,
+            device_query,
         )
 
     async def get_e2e_one_time_keys(
