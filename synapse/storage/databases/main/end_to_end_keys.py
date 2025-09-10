@@ -359,7 +359,12 @@ class EndToEndKeyWorkerStore(EndToEndKeyBackgroundStore, CacheInvalidationWorker
             )
 
             # add each cross-signing signature to the correct device in the result dict.
-            for user_id, key_id, device_id, signature in cross_sigs_result:
+            for (user_id, key_id), device_id_and_signature in cross_sigs_result.items():
+                if device_id_and_signature is None:
+                    # There are no signatures for this user_id/key_id combination.
+                    continue
+                device_id, signature = device_id_and_signature
+
                 target_device_result = result[user_id][device_id]
                 # We've only looked up cross-signatures for non-deleted devices with key
                 # data.
@@ -481,7 +486,7 @@ class EndToEndKeyWorkerStore(EndToEndKeyBackgroundStore, CacheInvalidationWorker
     def _get_e2e_cross_signing_signatures_for_device(
         self,
         user_id_and_device_id: Tuple[str, str],
-    ) -> Tuple[str, str, str, str]:
+    ) -> Tuple[str, str]:
         """
         The single-item version of `_get_e2e_cross_signing_signatures_for_devices`.
 
@@ -495,21 +500,30 @@ class EndToEndKeyWorkerStore(EndToEndKeyBackgroundStore, CacheInvalidationWorker
     )
     async def _get_e2e_cross_signing_signatures_for_devices(
         self, device_query: Iterable[Tuple[str, str]]
-    ) -> Sequence[Tuple[str, str, str, str]]:
-        """Get cross-signing signatures for a given list of devices
+    ) -> Mapping[Tuple[str, str], Optional[Tuple[str, str]]]:
+        """Get cross-signing signatures for a given list of user IDs and devices.
 
         Returns signatures made by the owners of the devices.
 
-        Returns:
-            A list of results; each entry in the list is a tuple of
-            (user_id, key_id, target_device_id, signature).
+        Args:
+            An iterable containing tuples of (user ID, device ID).
 
-            As results are cached, the return type is an immutable `Sequence`.
+        Returns:
+            A mapping of results. The keys are the original (user_id, device_id)
+            tuple, while the value is the matching tuple of (key_id, signature).
+            The value will be `None` instead if no signatures exist for the
+            device (this is a behaviour of `@cachedList`).
+
+            Given this method is annotated with `@cachedList`, the return dict's
+            keys match the tuples within `device_query`, so that cache entries can
+            be computed from the corresponding values.
+
+            As results are cached, the return type is immutable.
         """
 
         def _get_e2e_cross_signing_signatures_for_devices_txn(
             txn: LoggingTransaction, device_query: Iterable[Tuple[str, str]]
-        ) -> Sequence[Tuple[str, str, str, str]]:
+        ) -> Mapping[Tuple[str, str], Tuple[str, str]]:
             signature_query_clauses = []
             signature_query_params = []
 
@@ -525,17 +539,15 @@ class EndToEndKeyWorkerStore(EndToEndKeyBackgroundStore, CacheInvalidationWorker
                 """ % (" OR ".join("(" + q + ")" for q in signature_query_clauses))
 
             txn.execute(signature_sql, signature_query_params)
-            return cast(
-                List[
-                    Tuple[
-                        str,
-                        str,
-                        str,
-                        str,
-                    ]
-                ],
-                txn.fetchall(),
-            )
+
+            devices_and_signatures = {}
+            for user_id, key_id, target_device_id, signature in txn.fetchall():
+                devices_and_signatures[(user_id, target_device_id)] = (
+                    key_id,
+                    signature,
+                )
+
+            return devices_and_signatures
 
         return await self.db_pool.runInteraction(
             "_get_e2e_cross_signing_signatures_for_devices_txn",
