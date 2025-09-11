@@ -58,11 +58,12 @@ class PasswordResetTestCase(unittest.HomeserverTestCase):
         config = self.default_config()
 
         # Email config.
+        templates = (
+            importlib_resources.files("synapse").joinpath("res").joinpath("templates")
+        )
         config["email"] = {
             "enable_notifs": False,
-            "template_dir": os.path.abspath(
-                importlib_resources.files("synapse").joinpath("res", "templates")
-            ),
+            "template_dir": os.path.abspath(str(templates)),
             "smtp_host": "127.0.0.1",
             "smtp_port": 20,
             "require_transport_security": False,
@@ -797,11 +798,12 @@ class ThreepidEmailRestTestCase(unittest.HomeserverTestCase):
         config = self.default_config()
 
         # Email config.
+        templates = (
+            importlib_resources.files("synapse").joinpath("res").joinpath("templates")
+        )
         config["email"] = {
             "enable_notifs": False,
-            "template_dir": os.path.abspath(
-                importlib_resources.files("synapse").joinpath("res", "templates")
-            ),
+            "template_dir": os.path.abspath(str(templates)),
             "smtp_host": "127.0.0.1",
             "smtp_port": 20,
             "require_transport_security": False,

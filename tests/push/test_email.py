@@ -59,11 +59,12 @@ class EmailPusherTests(HomeserverTestCase):
 
     def make_homeserver(self, reactor: MemoryReactor, clock: Clock) -> HomeServer:
         config = self.default_config()
+        templates = (
+            importlib_resources.files("synapse").joinpath("res").joinpath("templates")
+        )
         config["email"] = {
             "enable_notifs": True,
-            "template_dir": os.path.abspath(
-                importlib_resources.files("synapse").joinpath("res", "templates")
-            ),
+            "template_dir": os.path.abspath(str(templates)),
             "expiry_template_html": "notice_expiry.html",
             "expiry_template_text": "notice_expiry.txt",
             "notif_template_html": "notif_mail.html",
