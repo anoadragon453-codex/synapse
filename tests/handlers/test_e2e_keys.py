@@ -1078,6 +1078,8 @@ class E2eKeysHandlerTestCase(unittest.HomeserverTestCase):
             )
         )
 
+        print(ret["device_keys"])
+
         self.assertEqual(
             ret["device_keys"][local_user]["xyz"]["signatures"][local_user][
                 "ed25519:" + selfsigning_pubkey
