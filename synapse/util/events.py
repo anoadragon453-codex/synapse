@@ -15,7 +15,7 @@
 
 from typing import Any, List, Optional
 
-from synapse._pydantic_compat import Field, StrictStr, ValidationError, validator
+from pydantic import Field, StrictStr, ValidationError, field_validator
 from synapse.types import JsonDict
 from synapse.util.pydantic_models import ParseModel
 from synapse.util.stringutils import random_string
@@ -60,7 +60,8 @@ class MTopic(ParseModel):
     # Because "Receivers SHOULD use the first representation in the array that they
     # understand.", we ignore invalid representations in the `m.text` field and use
     # what we can.
-    @validator("m_text", pre=True)
+    @field_validator("m_text", mode="before")
+    @classmethod
     def ignore_invalid_representations(
         cls, m_text: Any
     ) -> Optional[List[MTextRepresentation]]:
@@ -92,7 +93,8 @@ class TopicContent(ParseModel):
 
     # We ignore invalid `m.topic` fields as we can always fall back to the plain-text
     # `topic` field.
-    @validator("m_topic", pre=True)
+    @field_validator("m_topic", mode="before")
+    @classmethod
     def ignore_invalid_m_topic(cls, m_topic: Any) -> Optional[MTopic]:
         try:
             return MTopic.parse_obj(m_topic)

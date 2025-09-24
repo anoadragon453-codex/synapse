@@ -24,7 +24,7 @@ import logging
 from http import HTTPStatus
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
-from synapse._pydantic_compat import Extra, StrictStr
+from pydantic import ConfigDict, StrictStr
 from synapse.api import errors
 from synapse.api.errors import NotFoundError, SynapseError, UnrecognizedRequestError
 from synapse.http.server import HttpServer
@@ -244,11 +244,10 @@ class DeviceRestServlet(RestServlet):
 class DehydratedDeviceDataModel(RequestBodyModel):
     """JSON blob describing a dehydrated device to be stored.
 
-    Expects other freeform fields. Use .dict() to access them.
+    Expects other freeform fields. Use `.dict()` to access them.
     """
 
-    class Config:
-        extra = Extra.allow
+    model_config = ConfigDict(extra="allow", frozen=True, strict=True)
 
     algorithm: StrictStr
 
@@ -540,8 +539,7 @@ class DehydratedDeviceV2Servlet(RestServlet):
         device_id: StrictStr
         initial_device_display_name: Optional[StrictStr]
 
-        class Config:
-            extra = Extra.allow
+        model_config = ConfigDict(extra="allow", frozen=True, strict=True)
 
     async def on_PUT(self, request: SynapseRequest) -> Tuple[int, JsonDict]:
         submission = parse_and_validate_json_object_from_request(request, self.PutBody)

@@ -27,7 +27,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 import attr
 
-from synapse._pydantic_compat import StrictBool, StrictInt, StrictStr
+from pydantic import StrictBool, StrictInt, StrictStr
 from synapse.api.constants import Direction
 from synapse.api.errors import Codes, NotFoundError, SynapseError
 from synapse.http.servlet import (

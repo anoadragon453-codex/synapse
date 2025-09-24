@@ -117,6 +117,14 @@ each upgrade are complete before moving on to the next upgrade, to avoid
 stacking them up. You can monitor the currently running background updates with
 [the Admin API](usage/administration/admin_api/background_updates.html#status).
 
+# Upgrading to v1.140.0
+
+## Pydantic v2 is now required
+
+Synapse no longer supports pydantic v1. Ensure that the Python environment used to run
+Synapse installs pydantic version 2.0.0 or later (but still below 3.0.0) before
+upgrading. Environments that pin dependencies should be updated accordingly.
+
 # Upgrading to v1.139.0
 
 ## `/register` requests from old application service implementations may break when using MAS

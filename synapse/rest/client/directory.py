@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING, List, Literal, Optional, Tuple
 
 from twisted.web.server import Request
 
-from synapse._pydantic_compat import StrictStr
+from pydantic import StrictStr
 from synapse.api.errors import AuthError, Codes, NotFoundError, SynapseError
 from synapse.http.server import HttpServer
 from synapse.http.servlet import (

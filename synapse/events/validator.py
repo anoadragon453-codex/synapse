@@ -23,7 +23,7 @@ from typing import List, Type, Union, cast
 
 import jsonschema
 
-from synapse._pydantic_compat import Field, StrictBool, StrictStr
+from pydantic import Field, StrictBool, StrictStr
 from synapse.api.constants import (
     MAX_ALIAS_LENGTH,
     EventContentFields,

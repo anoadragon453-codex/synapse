@@ -26,11 +26,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import attr
 
-from synapse._pydantic_compat import (
-    StrictBool,
-    StrictInt,
-    StrictStr,
-)
+from pydantic import StrictBool, StrictInt, StrictStr
 from synapse.config._base import (
     Config,
     ConfigError,
@@ -49,7 +45,7 @@ from synapse.util.pydantic_models import ParseModel
 
 _DEPRECATED_WORKER_DUTY_OPTION_USED = """
 The '%s' configuration option is deprecated and will be removed in a future
-Synapse version. Please use ``%s: name_of_worker`` instead.
+Synapse version. Please use `%s: name_of_worker` instead.
 """
 
 _MISSING_MAIN_PROCESS_INSTANCE_MAP_DATA = """
