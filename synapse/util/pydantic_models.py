@@ -14,9 +14,10 @@
 #
 
 import re
-from typing import Any, Callable, Generator
+from typing import Any
 
-from synapse._pydantic_compat import BaseModel, Extra, StrictStr
+from pydantic import BaseModel, ConfigDict, GetCoreSchemaHandler
+from pydantic_core import core_schema
 from synapse.types import EventID
 
 
@@ -36,14 +37,10 @@ class ParseModel(BaseModel):
     https://pydantic-docs.helpmanual.io/usage/model_config/#change-behaviour-globally
     """
 
-    class Config:
-        # By default, ignore fields that we don't recognise.
-        extra = Extra.ignore
-        # By default, don't allow fields to be reassigned after parsing.
-        allow_mutation = False
+    model_config = ConfigDict(extra="ignore", frozen=True)
 
 
-class AnyEventId(StrictStr):
+class AnyEventId(str):
     """
     A validator for strings that need to be an Event ID.
 
@@ -55,9 +52,16 @@ class AnyEventId(StrictStr):
     )
 
     @classmethod
-    def __get_validators__(cls) -> Generator[Callable[..., Any], Any, Any]:
-        yield from super().__get_validators__()  # type: ignore
-        yield cls.validate_event_id
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> core_schema.CoreSchema:
+        str_schema = core_schema.str_schema(strict=True)
+        return core_schema.chain_schema(
+            [
+                str_schema,
+                core_schema.no_info_plain_validator_function(cls.validate_event_id),
+            ]
+        )
 
     @classmethod
     def validate_event_id(cls, value: str) -> str:

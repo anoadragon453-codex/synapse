@@ -18,8 +18,10 @@
 # [This file includes modifications made by New Vector Limited]
 #
 #
+from pydantic import ConfigDict
+
 from synapse.util.pydantic_models import ParseModel
 
 
 class RequestBodyModel(ParseModel):
-    pass
+    model_config = ConfigDict(extra="ignore", frozen=True, strict=True)

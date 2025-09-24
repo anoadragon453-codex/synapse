@@ -40,13 +40,7 @@ from typing import (
 
 from twisted.web.server import Request
 
-from synapse._pydantic_compat import (
-    BaseModel,
-    ErrorWrapper,
-    MissingError,
-    PydanticValueError,
-    ValidationError,
-)
+from pydantic import BaseModel, ValidationError
 from synapse.api.errors import Codes, SynapseError
 from synapse.http import redact_uri
 from synapse.http.server import HttpServer
@@ -908,12 +902,15 @@ def validate_json_object(content: JsonDict, model_type: Type[Model]) -> Model:
         # clear-cut: BAD_JSON arguably overlaps with MISSING_PARAM and INVALID_PARAM.
         errcode = Codes.BAD_JSON
 
-        raw_errors = e.raw_errors
-        if len(raw_errors) == 1 and isinstance(raw_errors[0], ErrorWrapper):
-            raw_error = raw_errors[0].exc
-            if isinstance(raw_error, MissingError):
+        errors = e.errors()
+        if len(errors) == 1:
+            error_type = errors[0].get("type")
+            if error_type == "missing":
                 errcode = Codes.MISSING_PARAM
-            elif isinstance(raw_error, PydanticValueError):
+            elif error_type and (
+                error_type.startswith("value_error")
+                or error_type.startswith("type_error")
+            ):
                 errcode = Codes.INVALID_PARAM
 
         raise SynapseError(HTTPStatus.BAD_REQUEST, str(e), errcode=errcode)

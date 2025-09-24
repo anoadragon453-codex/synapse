@@ -28,7 +28,7 @@ import attr
 
 from twisted.web.server import Request
 
-from synapse._pydantic_compat import StrictBool, StrictStr, constr
+from pydantic import StrictBool, StrictStr, constr
 from synapse.api.constants import LoginType
 from synapse.api.errors import (
     Codes,

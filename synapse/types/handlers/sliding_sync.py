@@ -37,7 +37,7 @@ from typing import (
 
 import attr
 
-from synapse._pydantic_compat import Extra
+from pydantic import ConfigDict
 from synapse.api.constants import EventTypes
 from synapse.events import EventBase
 from synapse.types import (
@@ -70,14 +70,12 @@ class SlidingSyncConfig(SlidingSyncBody):
     user: UserID
     requester: Requester
 
-    # Pydantic config
-    class Config:
-        # By default, ignore fields that we don't recognise.
-        extra = Extra.ignore
-        # By default, don't allow fields to be reassigned after parsing.
-        allow_mutation = False
-        # Allow custom types like `UserID` to be used in the model
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(
+        extra="ignore",
+        frozen=True,
+        strict=True,
+        arbitrary_types_allowed=True,
+    )
 
 
 class OperationType(Enum):

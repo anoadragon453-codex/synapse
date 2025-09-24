@@ -20,15 +20,16 @@
 #
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
-from synapse._pydantic_compat import (
-    Extra,
+from pydantic import (
+    ConfigDict,
     Field,
     StrictBool,
     StrictInt,
     StrictStr,
     conint,
     constr,
-    validator,
+    field_validator,
+    model_validator,
 )
 from synapse.types.rest import RequestBodyModel
 from synapse.util.threepids import validate_email
@@ -44,8 +45,7 @@ class AuthenticationData(RequestBodyModel):
     `.dict(exclude_unset=True)` to access them.
     """
 
-    class Config:
-        extra = Extra.allow
+    model_config = ConfigDict(extra="allow", frozen=True, strict=True)
 
     session: Optional[StrictStr] = None
     type: Optional[StrictStr] = None
@@ -56,7 +56,7 @@ if TYPE_CHECKING:
 else:
     # See also assert_valid_client_secret()
     ClientSecretStr = constr(
-        regex="[0-9a-zA-Z.=_-]",  # noqa: F722
+        pattern="[0-9a-zA-Z.=_-]",  # noqa: F722
         min_length=1,
         max_length=255,
         strict=True,
@@ -70,13 +70,13 @@ class ThreepidRequestTokenBody(RequestBodyModel):
     next_link: Optional[StrictStr]
     send_attempt: StrictInt
 
-    @validator("id_access_token", always=True)
+    @model_validator(mode="after")
     def token_required_for_identity_server(
-        cls, token: Optional[str], values: Dict[str, object]
-    ) -> Optional[str]:
-        if values.get("id_server") is not None and token is None:
+        cls, body: "ThreepidRequestTokenBody"
+    ) -> "ThreepidRequestTokenBody":
+        if body.id_server is not None and body.id_access_token is None:
             raise ValueError("id_access_token is required if an id_server is supplied.")
-        return token
+        return body
 
 
 class EmailRequestTokenBody(ThreepidRequestTokenBody):
@@ -87,14 +87,17 @@ class EmailRequestTokenBody(ThreepidRequestTokenBody):
     # know the exact spelling (eg. upper and lower case) of address in the database.
     # Without this, an email stored in the database as "foo@bar.com" would cause
     # user requests for "FOO@bar.com" to raise a Not Found error.
-    _email_validator = validator("email", allow_reuse=True)(validate_email)
+    @field_validator("email")
+    @classmethod
+    def _email_validator(cls, value: str) -> str:
+        return validate_email(value)
 
 
 if TYPE_CHECKING:
     ISO3116_1_Alpha_2 = StrictStr
 else:
     # Per spec: two-letter uppercase ISO-3166-1-alpha-2
-    ISO3116_1_Alpha_2 = constr(regex="[A-Z]{2}", strict=True)
+    ISO3116_1_Alpha_2 = constr(pattern="[A-Z]{2}", strict=True)
 
 
 class MsisdnRequestTokenBody(ThreepidRequestTokenBody):
@@ -286,7 +289,8 @@ class SlidingSyncBody(RequestBodyModel):
             limit: StrictInt = 100
             since: Optional[StrictStr] = None
 
-            @validator("since")
+            @field_validator("since")
+            @classmethod
             def since_token_check(
                 cls, value: Optional[StrictStr]
             ) -> Optional[StrictStr]:
@@ -397,7 +401,8 @@ class SlidingSyncBody(RequestBodyModel):
     room_subscriptions: Optional[Dict[StrictStr, RoomSubscription]] = None
     extensions: Optional[Extensions] = None
 
-    @validator("lists")
+    @field_validator("lists")
+    @classmethod
     def lists_length_check(
         cls, value: Optional[Dict[str, SlidingSyncList]]
     ) -> Optional[Dict[str, SlidingSyncList]]:

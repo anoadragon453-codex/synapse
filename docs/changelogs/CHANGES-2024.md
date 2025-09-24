@@ -375,10 +375,8 @@ No significant changes since 1.116.0rc2.
 
 ### Internal Changes
 
-- Import pydantic objects from the `_pydantic_compat` module.
-  This allows `check_pydantic_models.py` to mock those pydantic objects
-  only in the synapse module, and not interfere with pydantic objects in
-  external dependencies. ([\#17667](https://github.com/element-hq/synapse/issues/17667))
+- Drop the `_pydantic_compat` shim in favour of importing directly from pydantic v2 and
+  remove the `check_pydantic_models.py` helper script. ([\#17667](https://github.com/element-hq/synapse/issues/17667))
 - Use [MSC4186](https://github.com/matrix-org/matrix-spec-proposals/pull/4186) Sliding Sync tables as a bulk shortcut for getting the max `event_stream_ordering` of rooms. ([\#17693](https://github.com/element-hq/synapse/issues/17693))
 - Speed up [MSC4186](https://github.com/matrix-org/matrix-spec-proposals/pull/4186) sliding sync requests a bit where there are many room changes. ([\#17696](https://github.com/element-hq/synapse/issues/17696))
 - Refactor [MSC4186](https://github.com/matrix-org/matrix-spec-proposals/pull/4186) sliding sync filter unit tests so the sliding sync API has better test coverage. ([\#17703](https://github.com/element-hq/synapse/issues/17703))

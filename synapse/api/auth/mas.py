@@ -16,14 +16,7 @@ import logging
 from typing import TYPE_CHECKING, Optional, Set
 from urllib.parse import urlencode
 
-from synapse._pydantic_compat import (
-    BaseModel,
-    Extra,
-    StrictBool,
-    StrictInt,
-    StrictStr,
-    ValidationError,
-)
+from pydantic import BaseModel, ConfigDict, StrictBool, StrictInt, StrictStr, ValidationError
 from synapse.api.auth.base import BaseAuth
 from synapse.api.errors import (
     AuthError,
@@ -64,8 +57,7 @@ STABLE_SCOPE_MATRIX_DEVICE_PREFIX = "urn:matrix:client:device:"
 
 
 class ServerMetadata(BaseModel):
-    class Config:
-        extra = Extra.allow
+    model_config = ConfigDict(extra="allow", strict=True)
 
     issuer: StrictStr
     account_management_uri: StrictStr
@@ -80,8 +72,7 @@ class IntrospectionResponse(BaseModel):
     device_id: Optional[StrictStr]
     expires_in: Optional[StrictInt]
 
-    class Config:
-        extra = Extra.allow
+    model_config = ConfigDict(extra="allow", strict=True)
 
     def get_scope_set(self) -> set[str]:
         if not self.scope:

@@ -15,14 +15,14 @@
 
 from typing import Any, Optional
 
-from synapse._pydantic_compat import (
+from pydantic import (
     AnyHttpUrl,
     Field,
     FilePath,
     StrictBool,
     StrictStr,
     ValidationError,
-    validator,
+    model_validator,
 )
 from synapse.config.experimental import read_secret_from_file_once
 from synapse.types import JsonDict
@@ -37,23 +37,17 @@ class MasConfigModel(ParseModel):
     secret: Optional[StrictStr] = Field(default=None)
     secret_path: Optional[FilePath] = Field(default=None)
 
-    @validator("secret")
-    def validate_secret_is_set_if_enabled(cls, v: Any, values: dict) -> Any:
-        if values.get("enabled", False) and not values.get("secret_path") and not v:
+    @model_validator(mode="after")
+    def validate_secret_configuration(cls, values: "MasConfigModel") -> "MasConfigModel":
+        if values.secret and values.secret_path:
+            raise ValueError("`secret` and `secret_path` cannot be set at the same time.")
+
+        if values.enabled and not values.secret and not values.secret_path:
             raise ValueError(
                 "You must set a `secret` or `secret_path` when enabling Matrix Authentication Service integration."
             )
 
-        return v
-
-    @validator("secret_path")
-    def validate_secret_path_is_set_if_enabled(cls, v: Any, values: dict) -> Any:
-        if values.get("secret"):
-            raise ValueError(
-                "`secret` and `secret_path` cannot be set at the same time."
-            )
-
-        return v
+        return values
 
 
 class MasConfig(Config):
